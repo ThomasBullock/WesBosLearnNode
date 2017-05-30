@@ -35,13 +35,19 @@ const storeSchema = new mongoose.Schema({
 	photo: String
 });
 
-storeSchema.pre('save', function(next) {  // needs to be proper function not arrow cos we need this
+storeSchema.pre('save', async function(next) {  // needs to be proper function not arrow cos we need this
 	if(!this.isModified('name')) { // we only want to run this when the name changes
 		next(); // skip it
 		return // stops the function from running further!
 	}
-	this.slug = slug(this.name);
-	next();	
+  this.slug = slug(this.name);
+  // find other stores that have a slug of wes, wes-1, wes-2
+  const slugRegEx = new RegExp(`^(${this.slug})((-[0-9]*$)?)$`, 'i');
+  const storesWithSlug = await this.constructor.find({ slug: slugRegEx });
+  if(storesWithSlug.length) {
+    this.slug = `${this.slug}-${storesWithSlug.length + 1}`;
+  }
+  next();
 });
 
 module.exports = mongoose.model('Store', storeSchema);
